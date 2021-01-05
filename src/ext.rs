@@ -5,7 +5,6 @@
 
 use super::{Config, HtmlCfg};
 use comrak::ComrakOptions;
-use futures::{future, StreamExt};
 use http::{Request, Response, StatusCode};
 use hyper::{header, Body};
 use log::{trace, warn};
@@ -16,6 +15,8 @@ use std::fmt::Write;
 use std::io;
 use std::path::{Path, PathBuf};
 use tokio::fs::DirEntry;
+use tokio_stream::wrappers::ReadDirStream;
+use tokio_stream::StreamExt;
 
 /// The entry point to extensions. Extensions are given both the request and the
 /// response result from regular file serving, and have the opportunity to
@@ -173,11 +174,12 @@ async fn list_dir(root_dir: &Path, path: &Path) -> Result<Response<Body>> {
     let up_dir = path.join("..");
     let path = path.to_owned();
     let dents = tokio::fs::read_dir(path).await?;
+    let dents = ReadDirStream::new(dents);
     let dents = dents.filter_map(|dent| match dent {
-        Ok(dent) => future::ready(Some(dent)),
+        Ok(dent) => Some(dent),
         Err(e) => {
             warn!("directory entry error: {}", e);
-            future::ready(None)
+            None
         }
     });
     let paths = dents.map(|dent| DirEntry::path(&dent));

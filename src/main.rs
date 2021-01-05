@@ -30,11 +30,12 @@ use tokio_util::codec::{BytesCodec, FramedRead};
 mod ext;
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<()> {
     // Set up error handling immediately
     if let Err(e) = run().await {
         log_error_chain(&e);
     }
+    Ok(())
 }
 
 /// Basic error reporting, including the "cause chain". This is used both by the
